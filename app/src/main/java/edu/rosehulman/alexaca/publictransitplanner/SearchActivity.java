@@ -19,6 +19,11 @@ public class SearchActivity extends AppCompatActivity implements SearchFragment.
 
     @Override
     public void onGetDirectionsPressed(String locAndDest) {
+
         Log.d("Search", locAndDest);
+        ResultsFragment resultsFragment = ResultsFragment.newInstance(this);
+        FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+        ft.replace(R.id.content_view, resultsFragment);
+        ft.commit();
     }
 }
