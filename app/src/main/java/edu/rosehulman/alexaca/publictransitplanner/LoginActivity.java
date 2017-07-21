@@ -4,6 +4,7 @@ import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.annotation.TargetApi;
 import android.app.LoaderManager.LoaderCallbacks;
+import android.content.Context;
 import android.content.CursorLoader;
 import android.content.Intent;
 import android.content.Loader;
@@ -25,8 +26,14 @@ import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
 
+import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 import static android.Manifest.permission.READ_CONTACTS;
@@ -36,12 +43,12 @@ import static android.Manifest.permission.READ_CONTACTS;
  */
 public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<Cursor> {
 
-    public static final String EXTRA_USERNAME = "username";
+    public static final String EXTRA_NAME = "name";
     /**
      * Id to identity READ_CONTACTS permission request.
      */
     private static final int REQUEST_READ_CONTACTS = 0;
-
+    private DatabaseReference mDatabaseRef;
     /**
      * A dummy authentication store containing known user names and passwords.
      * TODO: remove after connecting to a real authentication system.
@@ -56,11 +63,13 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
     // UI references.
     private AutoCompleteTextView mUsernameView;
+    private AutoCompleteTextView mNameView;
     private EditText mPasswordView;
     private View mProgressView;
     private View mLoginFormView;
+    private boolean registerResult;
+    private boolean registerAtempt;
 
-    private HashMap<String, String> credentials;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,9 +77,10 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         setContentView(R.layout.activity_login);
         // Set up the login form.
         mUsernameView = (AutoCompleteTextView) findViewById(R.id.username);
+        mNameView = (AutoCompleteTextView) findViewById(R.id.your_name);
 //        populateAutoComplete();
-
-        credentials = new HashMap<>();
+        mDatabaseRef = FirebaseDatabase.getInstance().getReference().child("Users");
+        mDatabaseRef.addChildEventListener(new UsersChildEventListener());
         mPasswordView = (EditText) findViewById(R.id.password);
 //        mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
 //            @Override
@@ -87,11 +97,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         mSignInButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(attemptLogin()) {
-                    mainIntent.putExtra(EXTRA_USERNAME, mUsernameView.getText().toString());
-                    startActivity(mainIntent);
-                } else
-                    Log.d("FailLogin", "Invalid Credentials");
+                attemptLogin();
             }
         });
 
@@ -99,11 +105,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         mRegisterButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                if(attemptRegister()) {
-                    mainIntent.putExtra(EXTRA_USERNAME, mUsernameView.getText().toString());
-                    startActivity(mainIntent);
-                } else
-                    Log.d("FailRegister", "Username Taken");
+                attemptRegister();
             }
         });
 
@@ -112,12 +114,31 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     }
 
     private boolean attemptRegister() {
-        String username = mUsernameView.getText().toString();
-        String password = mPasswordView.getText().toString();
-        if (credentials.containsKey(username))
-            return false;
-        credentials.put(username, password);
-        return true;
+        final String username = mUsernameView.getText().toString();
+        final String password = mPasswordView.getText().toString();
+        final String name = mNameView.getText().toString();
+        final Context context = this;
+        registerAtempt = false;
+        mDatabaseRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.hasChild(username)) {
+                    Log.d("Database", "username exists");
+                    setRegisterResult(false);
+                } else {
+                    setRegisterResult(true);
+                    mDatabaseRef.child(username).setValue(new User(name, password));
+                    final Intent mainIntent = new Intent(context, MainActivity.class);
+                    mainIntent.putExtra(EXTRA_NAME, mNameView.getText().toString());
+                    startActivity(mainIntent);
+                }
+            }
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+        return registerResult;
     }
 
     private void populateAutoComplete() {
@@ -170,50 +191,42 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
      * errors are presented and no actual login attempt is made.
      */
     private boolean attemptLogin() {
-//        if (mAuthTask != null) {
-//            return false;
-//        }
-
-        // Reset errors.
-//        mUsernameView.setError(null);
-//        mPasswordView.setError(null);
 
         // Store values at the time of the login attempt.
-        String username = mUsernameView.getText().toString();
-        String password = mPasswordView.getText().toString();
-        if (credentials.containsKey(username) && credentials.get(username).equals(password))
-            return true;
-        else
-            return false;
+        final String username = mUsernameView.getText().toString();
+        final String password = mPasswordView.getText().toString();
+        final Context context = this;
+
+        mDatabaseRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if (dataSnapshot.hasChild(username) && dataSnapshot.child(username).child("password").getValue().toString().equals(password))
+                {
+                    final Intent mainIntent = new Intent(context, MainActivity.class);
+                    mainIntent.putExtra(EXTRA_NAME, mNameView.getText().toString());
+                    startActivity(mainIntent);
+                } else {
+                    Log.d("login", "incorrect username or password");
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+
+
+//        if (!mDatabaseRef.child(username).equals(username) && mDatabaseRef.child(username).getKey().equals(password))
+//            return true;
+//        else
+//            return false;
 
 //        boolean cancel = false;
 //        View focusView = null;
 //
-//        // Check for a valid password, if the user entered one.
-//        if (!TextUtils.isEmpty(password) && !isPasswordValid(password)) {
-//            mPasswordView.setError(getString(R.string.error_invalid_password));
-//            focusView = mPasswordView;
-//            cancel = true;
-//        }
 //
-//        // Check for a valid username address.
-//        if (TextUtils.isEmpty(username)) {
-//            mUsernameView.setError(getString(R.string.error_field_required));
-//            focusView = mUsernameView;
-//            cancel = true;
-//        }
-//
-//        if (cancel) {
-//            // There was an error; don't attempt login and focus the first
-//            // form field with an error.
-//            focusView.requestFocus();
-//        } else {
-//            // Show a progress spinner, and kick off a background task to
-//            // perform the user login attempt.
-//            showProgress(true);
-//            mAuthTask = new UserLoginTask(username, password);
-//            mAuthTask.execute((Void) null);
-//        }
+        return false;
     }
 
 
@@ -300,6 +313,11 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         mUsernameView.setAdapter(adapter);
     }
 
+    public void setRegisterResult(boolean registerResult) {
+        this.registerResult = registerResult;
+        this.registerAtempt = true;
+    }
+
 
     private interface ProfileQuery {
         String[] PROJECTION = {
@@ -365,6 +383,43 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         protected void onCancelled() {
             mAuthTask = null;
             showProgress(false);
+        }
+    }
+
+
+
+    public class UsersChildEventListener implements ChildEventListener {
+
+        @Override
+        public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+//            User user = dataSnapshot.getKey();
+//            user.setName(dataSnapshot.getKey());
+        //gets password    Log.d("Listener", "added"+dataSnapshot.child("password").getValue().toString());
+            //gets username    Log.d("Listener", "added"+dataSnapshot.getKey());
+
+        }
+
+        @Override
+        public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+            String key = dataSnapshot.getKey();
+            User updatedMovieQuote = dataSnapshot.getValue(User.class);
+            Log.d("Listener", "changed"+key);
+        }
+
+        @Override
+        public void onChildRemoved(DataSnapshot dataSnapshot) {
+            String key = dataSnapshot.getKey();
+            Log.d("Listener", "removed" + key);
+        }
+
+        @Override
+        public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+        }
+
+        @Override
+        public void onCancelled(DatabaseError databaseError) {
+
         }
     }
 }

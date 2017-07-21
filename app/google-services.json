@@ -1,0 +1,42 @@
+{
+  "project_info": {
+    "project_number": "457129616422",
+    "firebase_url": "https://public-transit-planner.firebaseio.com",
+    "project_id": "public-transit-planner",
+    "storage_bucket": "public-transit-planner.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:457129616422:android:9419d6381111c96b",
+        "android_client_info": {
+          "package_name": "edu.rosehulman.alexaca.publictransitplanner"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "457129616422-56giigag4s19k473pg25j60nj4elb9g5.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD61DkLPdKBmt3AD9rWuI5jLEnoAxRkcMk"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

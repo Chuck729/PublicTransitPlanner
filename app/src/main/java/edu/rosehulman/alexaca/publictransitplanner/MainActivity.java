@@ -19,7 +19,7 @@ public class MainActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         Intent intent = getIntent();
-        String username = intent.getStringExtra(LoginActivity.EXTRA_USERNAME);
+        String username = intent.getStringExtra(LoginActivity.EXTRA_NAME);
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         final Intent searchIntent = new Intent(this, SearchActivity.class);
         fab.setOnClickListener(new View.OnClickListener() {
