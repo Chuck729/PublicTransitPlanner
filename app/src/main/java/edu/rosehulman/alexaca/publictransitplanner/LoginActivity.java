@@ -6,6 +6,7 @@ import android.annotation.TargetApi;
 import android.app.LoaderManager.LoaderCallbacks;
 import android.content.Context;
 import android.content.CursorLoader;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.Loader;
 import android.content.pm.PackageManager;
@@ -17,6 +18,7 @@ import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -63,12 +65,9 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
     // UI references.
     private AutoCompleteTextView mUsernameView;
-    private AutoCompleteTextView mNameView;
     private EditText mPasswordView;
     private View mProgressView;
     private View mLoginFormView;
-    private boolean registerResult;
-    private boolean registerAtempt;
 
 
     @Override
@@ -77,7 +76,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         setContentView(R.layout.activity_login);
         // Set up the login form.
         mUsernameView = (AutoCompleteTextView) findViewById(R.id.username);
-        mNameView = (AutoCompleteTextView) findViewById(R.id.your_name);
 //        populateAutoComplete();
         mDatabaseRef = FirebaseDatabase.getInstance().getReference().child("Users");
         mDatabaseRef.addChildEventListener(new UsersChildEventListener());
@@ -102,10 +100,24 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         });
 
         Button mRegisterButton = (Button) findViewById(R.id.register_button);
+        final Context context = this;
         mRegisterButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View view) {
-                attemptRegister();
+                AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                final View mView = getLayoutInflater().inflate(R.layout.dialog_register, null, false);
+                builder.setTitle(R.string.register_dialog);
+                builder.setView(mView);
+                EditText usernameET = (EditText)mView.findViewById(R.id.dialog_username);
+                usernameET.setText(mUsernameView.getText().toString());
+                builder.setPositiveButton("Register", new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        attemptRegister(mView);
+                    }
+                });
+                builder.setNegativeButton(android.R.string.cancel, null);
+                builder.show();
             }
         });
 
@@ -113,23 +125,23 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         mProgressView = findViewById(R.id.login_progress);
     }
 
-    private boolean attemptRegister() {
-        final String username = mUsernameView.getText().toString();
-        final String password = mPasswordView.getText().toString();
-        final String name = mNameView.getText().toString();
+    private boolean attemptRegister(View view) {
+        EditText usernameET = (EditText) view.findViewById(R.id.dialog_username);
+        final EditText yournameET = (EditText) view.findViewById(R.id.dialog_your_name);
+        EditText passwordET = (EditText) view.findViewById(R.id.dialog_password);
+        final String username = usernameET.getText().toString();
+        final String password = passwordET.getText().toString();
+        final String name = yournameET.getText().toString();
         final Context context = this;
-        registerAtempt = false;
         mDatabaseRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 if (dataSnapshot.hasChild(username)) {
                     Log.d("Database", "username exists");
-                    setRegisterResult(false);
                 } else {
-                    setRegisterResult(true);
                     mDatabaseRef.child(username).setValue(new User(name, password));
                     final Intent mainIntent = new Intent(context, MainActivity.class);
-                    mainIntent.putExtra(EXTRA_NAME, mNameView.getText().toString());
+                    mainIntent.putExtra(EXTRA_NAME, name);
                     startActivity(mainIntent);
                 }
             }
@@ -138,7 +150,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 
             }
         });
-        return registerResult;
+        return true;
     }
 
     private void populateAutoComplete() {
@@ -203,7 +215,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                 if (dataSnapshot.hasChild(username) && dataSnapshot.child(username).child("password").getValue().toString().equals(password))
                 {
                     final Intent mainIntent = new Intent(context, MainActivity.class);
-                    mainIntent.putExtra(EXTRA_NAME, mNameView.getText().toString());
+                    //mainIntent.putExtra(EXTRA_NAME, mNameView.getText().toString());
                     startActivity(mainIntent);
                 } else {
                     Log.d("login", "incorrect username or password");
@@ -313,10 +325,6 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         mUsernameView.setAdapter(adapter);
     }
 
-    public void setRegisterResult(boolean registerResult) {
-        this.registerResult = registerResult;
-        this.registerAtempt = true;
-    }
 
 
     private interface ProfileQuery {

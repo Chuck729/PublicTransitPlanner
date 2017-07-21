@@ -24,5 +24,6 @@
     <string name="directions_button_text">Get Directions</string>
     <string name="location">Location</string>
     <string name="destination">Destination</string>
-    <string name="your_name_hint">your name</string>
+    <string name="your_name_hint">Your name</string>
+    <string name="register_dialog">Register</string>
 </resources>
