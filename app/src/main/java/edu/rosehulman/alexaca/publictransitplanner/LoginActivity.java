@@ -27,13 +27,18 @@ import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
 
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -51,6 +56,8 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
      */
     private static final int REQUEST_READ_CONTACTS = 0;
     private DatabaseReference mDatabaseRef;
+    private FirebaseAuth mAuth;
+    private FirebaseUser mCurrentUser;
     /**
      * A dummy authentication store containing known user names and passwords.
      * TODO: remove after connecting to a real authentication system.
@@ -70,6 +77,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
     private View mLoginFormView;
 
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -80,6 +88,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         mDatabaseRef = FirebaseDatabase.getInstance().getReference().child("Users");
         mDatabaseRef.addChildEventListener(new UsersChildEventListener());
         mPasswordView = (EditText) findViewById(R.id.password);
+        mAuth = FirebaseAuth.getInstance();
 //        mPasswordView.setOnEditorActionListener(new TextView.OnEditorActionListener() {
 //            @Override
 //            public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
@@ -90,7 +99,11 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
 //                return false;
 //            }
 //        });
-        final Intent mainIntent = new Intent(this, MainActivity.class);
+        mCurrentUser = mAuth.getCurrentUser();
+        if (mCurrentUser != null) {
+            final Intent mainIntent = new Intent(this, MainActivity.class);
+            startActivity(mainIntent);
+        }
         Button mSignInButton = (Button) findViewById(R.id.sign_in_button);
         mSignInButton.setOnClickListener(new OnClickListener() {
             @Override
@@ -133,23 +146,26 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         final String password = passwordET.getText().toString();
         final String name = yournameET.getText().toString();
         final Context context = this;
-        mDatabaseRef.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (dataSnapshot.hasChild(username)) {
-                    Log.d("Database", "username exists");
-                } else {
-                    mDatabaseRef.child(username).setValue(new User(name, password));
-                    final Intent mainIntent = new Intent(context, MainActivity.class);
-                    mainIntent.putExtra(EXTRA_NAME, name);
-                    startActivity(mainIntent);
-                }
-            }
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
+        if (username.length() > 0 && password.length() > 0 && name.length() > 0) {
+            mAuth.createUserWithEmailAndPassword(username, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+                @Override
+                public void onComplete(@NonNull Task<AuthResult> task) {
+                    if (task.isSuccessful()) {
+                        Log.d("Register", "success");
+                        User user = new User(name);
+                        mDatabaseRef.child(mAuth.getCurrentUser().getUid()).push().setValue(user);
+                        final Intent mainIntent = new Intent(context, MainActivity.class);
+                        startActivity(mainIntent);
 
-            }
-        });
+                    } else {
+                        Log.d("Register", "fail");
+                        Toast.makeText(context, "Email already in use", Toast.LENGTH_LONG).show();
+                    }
+                }
+            });
+        } else {
+            Toast.makeText(this, "All fields required", Toast.LENGTH_LONG).show();
+        }
         return true;
     }
 
@@ -208,36 +224,21 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
         final String username = mUsernameView.getText().toString();
         final String password = mPasswordView.getText().toString();
         final Context context = this;
-
-        mDatabaseRef.addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if (dataSnapshot.hasChild(username) && dataSnapshot.child(username).child("password").getValue().toString().equals(password))
-                {
-                    final Intent mainIntent = new Intent(context, MainActivity.class);
-                    //mainIntent.putExtra(EXTRA_NAME, mNameView.getText().toString());
-                    startActivity(mainIntent);
-                } else {
-                    Log.d("login", "incorrect username or password");
+        if (username.length() > 0 && password.length() > 0) {
+            mAuth.signInWithEmailAndPassword(username, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+                @Override
+                public void onComplete(@NonNull Task<AuthResult> task) {
+                    if (task.isSuccessful()) {
+                        final Intent mainIntent = new Intent(context, MainActivity.class);
+                        startActivity(mainIntent);
+                    } else {
+                        Toast.makeText(context, "Invalid email or password", Toast.LENGTH_LONG).show();
+                    }
                 }
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-
-            }
-        });
-
-
-//        if (!mDatabaseRef.child(username).equals(username) && mDatabaseRef.child(username).getKey().equals(password))
-//            return true;
-//        else
-//            return false;
-
-//        boolean cancel = false;
-//        View focusView = null;
-//
-//
+            });
+        } else {
+            Toast.makeText(this, "Enter username and password", Toast.LENGTH_LONG).show();
+        }
         return false;
     }
 
