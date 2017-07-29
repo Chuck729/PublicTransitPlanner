@@ -83,7 +83,7 @@ public class SearchFragment extends Fragment {
                 mDestination = destinationET.getText().toString();
                 if (mListener != null) {
                     if (mLocation.length() > 0 && mDestination.length() > 0)
-                        mListener.onGetDirectionsPressed(mLocation+";"+mDestination);
+                        mListener.onGetDirectionsPressed(mLocation, mDestination);
                 }
             }
         });
@@ -119,6 +119,6 @@ public class SearchFragment extends Fragment {
      * >Communicating with Other Fragments</a> for more information.
      */
     public interface OnButtonPressed {
-        void onGetDirectionsPressed(String locAndDest);
+        void onGetDirectionsPressed(String location, String destination);
     }
 }
