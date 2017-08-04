@@ -133,13 +133,13 @@
         android:layout_marginLeft="20dp"
         android:layout_marginBottom="20dp"/>
 
-    <Button
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|right"
-        android:id="@+id/view_map_button"
-        android:text="@string/view_map"
-        android:layout_marginBottom="20dp"
-        android:layout_marginRight="20dp"/>
+    <!--<Button-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:layout_gravity="bottom|right"-->
+        <!--android:id="@+id/view_map_button"-->
+        <!--android:text="@string/view_map"-->
+        <!--android:layout_marginBottom="20dp"-->
+        <!--android:layout_marginRight="20dp"/>-->
 
 </android.support.design.widget.CoordinatorLayout>

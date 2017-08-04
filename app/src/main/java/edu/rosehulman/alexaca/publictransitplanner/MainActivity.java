@@ -9,7 +9,9 @@ import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
@@ -26,14 +28,45 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     private Location mLocation;
     private GoogleApiClient mGoogleApiClient;
     private int PLACE_PICKER_REQUEST;
-
+    private TextView mDisplayLocationTV;
+    private TextView mDisplayDestingationTV;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-//        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         this.setTitle("test");
+        Button currentLocationButton = (Button)findViewById(R.id.current_location_button);
+        Button chooseLocationButton = (Button)findViewById(R.id.choose_location_button);
+        Button chooseDestinationButton = (Button)findViewById(R.id.destination_button);
+//        Button viewMapButton = (Button)findViewById(R.id.view_map_button);
+        mDisplayLocationTV = (TextView)findViewById(R.id.display_location_text_view);
+        mDisplayDestingationTV = (TextView)findViewById(R.id.display_destination_text_view);
+        currentLocationButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                updateStartLocation("Current Location");
+            }
+        });
+        chooseLocationButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startPlacePicker(1);
+            }
+        });
+        chooseDestinationButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                startPlacePicker(2);
+            }
+        });
+//        viewMapButton.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//
+//            }
+//        });
 //        Intent intent = getIntent();
 //        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
 //        final Intent searchIntent = new Intent(this, SearchActivity.class);
@@ -54,8 +87,14 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
                 .addApi(Places.PLACE_DETECTION_API)
                 .enableAutoManage(this, this)
                 .build();
+    }
 
-        PLACE_PICKER_REQUEST = 1;
+    private void updateStartLocation(String message) {
+        mDisplayLocationTV.setText("Start: " + message);
+    }
+
+    private void startPlacePicker(int request) {
+        PLACE_PICKER_REQUEST = request;
         PlacePicker.IntentBuilder builder = new PlacePicker.IntentBuilder();
 
         try {
@@ -68,13 +107,21 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     }
 
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == PLACE_PICKER_REQUEST) {
+        if (requestCode == 1) {
             if (resultCode == RESULT_OK) {
                 Place place = PlacePicker.getPlace(data, this);
-                String toastMsg = String.format("Place: %s", place.getName());
-                Toast.makeText(this, toastMsg, Toast.LENGTH_LONG).show();
+                updateStartLocation(place.getAddress().toString());
+            }
+        } else if (requestCode == 2) {
+            if (resultCode == RESULT_OK) {
+                Place place = PlacePicker.getPlace(data, this);
+                updateEndLocation(place.getAddress().toString());
             }
         }
+    }
+
+    private void updateEndLocation(String s) {
+        mDisplayDestingationTV.setText("End: " + s);
     }
 
     @Override
