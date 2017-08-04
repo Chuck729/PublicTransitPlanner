@@ -27,4 +27,8 @@
     <string name="your_name_hint">Your name</string>
     <string name="register_dialog">Register</string>
     <string name="title_activity_maps">Map</string>
+    <string name="current_location">Use Current Location</string>
+    <string name="choose_location">Choose Location</string>
+    <string name="choose_desination">Choose Desination</string>
+    <string name="view_map">View Map</string>
 </resources>
