@@ -35,6 +35,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
 
     public static final String CUURENT_LOC_EXTRA = "CURRENT_LOC";
     public static final String DESTINATION_EXTRA = "DESTINATION";
+    public static final String LOC_NAME_EXTRA = "LOC_NAME";
+    public static final String DESTINATION_NAME_EXTRA = "DEST_NAME";
     private GoogleMap mMap;
     private Location mLocation;
     private GoogleApiClient mGoogleApiClient;
@@ -42,7 +44,9 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     private TextView mDisplayLocationTV;
     private TextView mDisplayDestingationTV;
     private LatLng currentLocation = null;
+    private String currentLocationName = null;
     private LatLng currentDestination = null;
+    private String currentDestinationName = null;
     private LatLng currentUserLocation = null;
 
     @Override
@@ -56,7 +60,6 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         Button chooseLocationButton = (Button) findViewById(R.id.choose_location_button);
         Button chooseDestinationButton = (Button) findViewById(R.id.destination_button);
         Button startButton = (Button)findViewById(R.id.start_button);
-//        Button viewMapButton = (Button)findViewById(R.id.view_map_button);
         mDisplayLocationTV = (TextView) findViewById(R.id.display_location_text_view);
         mDisplayDestingationTV = (TextView) findViewById(R.id.display_destination_text_view);
         currentLocationButton.setOnClickListener(new View.OnClickListener() {
@@ -83,25 +86,6 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
                 startMapActivity();
             }
         });
-//        viewMapButton.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View v) {
-//
-//            }
-//        });
-//        Intent intent = getIntent();
-//        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-//        final Intent searchIntent = new Intent(this, SearchActivity.class);
-//        fab.setOnClickListener(new View.OnClickListener() {
-//            @Override
-//            public void onClick(View view) {
-//                startActivity(searchIntent);
-//            }
-//        });
-
-//        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
-//                .findFragmentById(R.id.map);
-//        mapFragment.getMapAsync(this);
 
         mGoogleApiClient = new GoogleApiClient
                 .Builder(this)
@@ -118,14 +102,15 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
             return;
         }
         mapIntent.putExtra(CUURENT_LOC_EXTRA, currentLocation);
+        mapIntent.putExtra(LOC_NAME_EXTRA, currentLocationName);
         mapIntent.putExtra(DESTINATION_EXTRA, currentDestination);
+        mapIntent.putExtra(DESTINATION_NAME_EXTRA, currentDestinationName);
         startActivityForResult(mapIntent, PLACE_PICKER_REQUEST);
     }
 
     private void getCurrentLocation() {
 
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-            Log.d("PTP", "Get current loc");
 
             PendingResult<PlaceLikelihoodBuffer> result = Places.PlaceDetectionApi.getCurrentPlace(mGoogleApiClient, null);
             result.setResultCallback(new ResultCallback<PlaceLikelihoodBuffer>() {
@@ -133,10 +118,9 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
                 public void onResult(PlaceLikelihoodBuffer likelyPlaces) {
                     if (likelyPlaces.getCount() > 0) {
                         PlaceLikelihood placeLike = likelyPlaces.get(0);
-                        Log.d("PTP", placeLike.toString());
 
                         currentUserLocation = placeLike.getPlace().getLatLng();
-                        updateStartLocation(currentUserLocation, placeLike.getPlace().getAddress().toString());
+                        updateStartLocation(currentUserLocation, placeLike.getPlace());
                         likelyPlaces.release();
                     }
                 }
@@ -144,9 +128,10 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         }
     }
 
-    private void updateStartLocation(LatLng lat, String addr) {
-        mDisplayLocationTV.setText("Start: " + addr);
+    private void updateStartLocation(LatLng lat, Place p) {
+        mDisplayLocationTV.setText("Start: " + p.getAddress().toString());
         currentLocation = lat;
+        currentLocationName = p.getName().toString();
     }
 
     private void startPlacePicker(int request) {
@@ -167,20 +152,21 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         if (requestCode == 1) {
             if (resultCode == RESULT_OK) {
                 Place place = PlacePicker.getPlace(this, data);
-                updateStartLocation(place.getLatLng(), place.getAddress().toString());
+                updateStartLocation(place.getLatLng(), place);
             }
         } else if (requestCode == 2) {
             if (resultCode == RESULT_OK) {
                 Place place = PlacePicker.getPlace(this, data);
-                updateEndLocation(place.getLatLng(), place.getAddress().toString());
+                updateEndLocation(place.getLatLng(), place);
             }
         }
     }
 
-    private void updateEndLocation(LatLng lat, String addr) {
+    private void updateEndLocation(LatLng lat, Place p) {
 
-        mDisplayDestingationTV.setText("End: " + addr);
+        mDisplayDestingationTV.setText("End: " + p.getAddress().toString());
         currentDestination = lat;
+        currentDestinationName = p.getName().toString();
     }
 
     @Override

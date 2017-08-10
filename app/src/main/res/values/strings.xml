@@ -31,4 +31,9 @@
     <string name="choose_location">Choose Location</string>
     <string name="choose_desination">Choose Desination</string>
     <string name="view_map">View Map</string>
+    <string name="add_marker_title">Add a marker for (%1$.1f, %2$.1f)</string>
+
+    <string name="dialog_add_marker_edit_text_title_hint">Title</string>
+    <string name="dialog_add_marker_edit_text_snippet_hint">Enter a short snippet (optional)</string>
+    <string name="use_location_picker">Use Location Picker</string>
 </resources>
