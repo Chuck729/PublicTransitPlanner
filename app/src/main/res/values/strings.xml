@@ -36,4 +36,6 @@
     <string name="dialog_add_marker_edit_text_title_hint">Title</string>
     <string name="dialog_add_marker_edit_text_snippet_hint">Enter a short snippet (optional)</string>
     <string name="use_location_picker">Use Location Picker</string>
+    <string name="edit_marker_title">Edit Marker</string>
+    <string name="remove_marker">Remove Marker</string>
 </resources>

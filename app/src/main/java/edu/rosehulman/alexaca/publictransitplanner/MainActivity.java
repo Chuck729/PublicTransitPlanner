@@ -44,9 +44,9 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     private TextView mDisplayLocationTV;
     private TextView mDisplayDestingationTV;
     private LatLng currentLocation = null;
-    private String currentLocationName = null;
+    private String currentLocationAddr = null;
     private LatLng currentDestination = null;
-    private String currentDestinationName = null;
+    private String currentDestinationAddr = null;
     private LatLng currentUserLocation = null;
 
     @Override
@@ -102,9 +102,9 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
             return;
         }
         mapIntent.putExtra(CUURENT_LOC_EXTRA, currentLocation);
-        mapIntent.putExtra(LOC_NAME_EXTRA, currentLocationName);
+        mapIntent.putExtra(LOC_NAME_EXTRA, currentLocationAddr);
         mapIntent.putExtra(DESTINATION_EXTRA, currentDestination);
-        mapIntent.putExtra(DESTINATION_NAME_EXTRA, currentDestinationName);
+        mapIntent.putExtra(DESTINATION_NAME_EXTRA, currentDestinationAddr);
         startActivityForResult(mapIntent, PLACE_PICKER_REQUEST);
     }
 
@@ -131,7 +131,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     private void updateStartLocation(LatLng lat, Place p) {
         mDisplayLocationTV.setText("Start: " + p.getAddress().toString());
         currentLocation = lat;
-        currentLocationName = p.getName().toString();
+        currentLocationAddr = p.getAddress().toString();
     }
 
     private void startPlacePicker(int request) {
@@ -166,7 +166,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
 
         mDisplayDestingationTV.setText("End: " + p.getAddress().toString());
         currentDestination = lat;
-        currentDestinationName = p.getName().toString();
+        currentDestinationAddr = p.getAddress().toString();
     }
 
     @Override
