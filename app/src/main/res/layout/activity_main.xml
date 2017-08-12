@@ -131,7 +131,7 @@
         android:text="Start"
         android:layout_gravity="bottom|left"
         android:layout_marginLeft="20dp"
-        android:layout_marginBottom="20dp"/>
+        android:layout_marginBottom="200dp"/>
 
     <Button
         android:layout_width="wrap_content"
@@ -141,6 +141,15 @@
         android:layout_gravity="bottom|right"
         android:layout_marginBottom="20dp"
         android:layout_marginRight="20dp"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/delete_map_button"
+        android:text="Delete Saved Map"
+        android:layout_gravity="bottom|right"
+        android:layout_marginRight="200dp"
+        android:layout_marginBottom="20dp"/>
 
     <!--<Button-->
         <!--android:layout_width="wrap_content"-->

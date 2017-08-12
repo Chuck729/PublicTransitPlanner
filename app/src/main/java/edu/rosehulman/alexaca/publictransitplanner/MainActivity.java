@@ -74,6 +74,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         Button chooseDestinationButton = (Button) findViewById(R.id.destination_button);
         Button startButton = (Button)findViewById(R.id.start_button);
         Button loadButton = (Button)findViewById(R.id.load_map_button);
+        Button deleteButton = (Button)findViewById(R.id.delete_map_button);
         mDisplayLocationTV = (TextView) findViewById(R.id.display_location_text_view);
         mDisplayDestingationTV = (TextView) findViewById(R.id.display_destination_text_view);
         currentLocationButton.setOnClickListener(new View.OnClickListener() {
@@ -103,7 +104,13 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         loadButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                displaySavedMaps();
+                displaySavedMaps(false);
+            }
+        });
+        deleteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                displaySavedMaps(true);
             }
         });
 
@@ -117,7 +124,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         mUser = FirebaseAuth.getInstance().getCurrentUser();
     }
 
-    private void displaySavedMaps() {
+    private void displaySavedMaps(final boolean forDeletion) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Select a saved map name");
 
@@ -140,10 +147,17 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 String name = arrayAdapter.getItem(which);
-                startLoadedMap(name);
+                if (forDeletion)
+                    deleteMap(name);
+                else
+                    startLoadedMap(name);
             }
         });
         builder.show();
+    }
+
+    private void deleteMap(String name) {
+        mDBRef.child(mUser.getUid()).child(name).removeValue();
     }
 
     private void startLoadedMap(String name) {
