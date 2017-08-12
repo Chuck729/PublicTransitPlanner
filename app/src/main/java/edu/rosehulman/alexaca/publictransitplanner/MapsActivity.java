@@ -65,6 +65,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mStartLocAddr = getIntent().getStringExtra(MainActivity.LOC_NAME_EXTRA);
         mEndLocAddr = getIntent().getStringExtra(MainActivity.DESTINATION_NAME_EXTRA);
         Button placePickerButton = (Button)findViewById(R.id.place_picker_button);
+        Button addRouteButton = (Button)findViewById(R.id.add_route_button);
         mapName = getIntent().getStringExtra(MainActivity.MAP_NAME_EXTRA);
         if (mapName != null && mapName.length() > 0) {
             loadMap = true;
@@ -87,7 +88,51 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 startPlacePicker();
             }
         });
+        addRouteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                addRoute();
+            }
+        });
         mDBRef = FirebaseDatabase.getInstance().getReference();
+    }
+
+    private void addRoute() {
+        // Getting URL to the Google Directions API
+        String url = getUrl(mMarkers.get(0).getPosition(), mMarkers.get(1).getPosition());
+        Log.d("onMapClick", url.toString());
+        FetchUrl FetchUrl = new FetchUrl();
+        FetchUrl.map = mMap;
+        // Start downloading json data from Google Directions API
+        FetchUrl.execute(url);
+        //move map camera
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(mMarkers.get(0).getPosition()));
+        mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
+    }
+
+    private String getUrl(LatLng origin, LatLng dest) {
+
+        // Origin of route
+        String str_origin = "origin=" + origin.latitude + "," + origin.longitude;
+
+        // Destination of route
+        String str_dest = "destination=" + dest.latitude + "," + dest.longitude;
+
+
+        // Sensor enabled
+        String sensor = "sensor=false";
+
+        // Building the parameters to the web service
+        String parameters = str_origin + "&" + str_dest + "&" + sensor;
+
+        // Output format
+        String output = "json";
+
+        // Building the url to the web service
+        String url = "https://maps.googleapis.com/maps/api/directions/" + output + "?" + parameters;
+
+
+        return url;
     }
 
     private void startPlacePicker() {
@@ -221,6 +266,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 marker.remove();
+                mMarkers.remove(marker);
             }
         });
         builder.create().show();

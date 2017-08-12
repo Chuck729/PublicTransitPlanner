@@ -30,6 +30,15 @@
         android:layout_marginRight="15dp"
         android:text="@string/use_location_picker"/>
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/add_route_button"
+        android:layout_gravity="bottom|left"
+        android:text="Add Route"
+        android:layout_marginBottom="20dp"
+        android:layout_marginLeft="15dp"/>
+
     <fragment
         android:id="@+id/map"
         android:name="com.google.android.gms.maps.SupportMapFragment"
