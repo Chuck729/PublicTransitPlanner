@@ -35,7 +35,6 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback {
 
@@ -48,6 +47,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private ArrayList<Marker> mMarkers;
     private DatabaseReference mDBRef;
     private FirebaseUser mUser;
+    private String lastSavedName = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -164,26 +164,27 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 return false;
             }
         });
-        mDBRef.child("Users").child(mUser.getUid()).child("route1").addListenerForSingleValueEvent(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                Log.d("datasnapshotcount", ""+dataSnapshot.getChildrenCount());
-                for (DataSnapshot d : dataSnapshot.getChildren()) {
-                    HashMap hash = (HashMap) d.getValue();
-                    Log.d("Hashmap", hash.toString());
-                    String title = (String)(hash.get("title"));
-                    String snippet = (String)(hash.get("snippet"));
-                    HashMap position = (HashMap) hash.get("position");
-                    LatLng latLng = new LatLng((double)position.get("latitude"), (double)position.get("longitude"));
-                    mMarkers.add(mMap.addMarker(new MarkerOptions().title(title).position(latLng).snippet(snippet)));
-                }
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-
-            }
-        });
+        //code to load a saved maps
+//        mDBRef.child("Users").child(mUser.getUid()).child("route1").addListenerForSingleValueEvent(new ValueEventListener() {
+//            @Override
+//            public void onDataChange(DataSnapshot dataSnapshot) {
+//                Log.d("datasnapshotcount", ""+dataSnapshot.getChildrenCount());
+//                for (DataSnapshot d : dataSnapshot.getChildren()) {
+//                    HashMap hash = (HashMap) d.getValue();
+//                    Log.d("Hashmap", hash.toString());
+//                    String title = (String)(hash.get("title"));
+//                    String snippet = (String)(hash.get("snippet"));
+//                    HashMap position = (HashMap) hash.get("position");
+//                    LatLng latLng = new LatLng((double)position.get("latitude"), (double)position.get("longitude"));
+//                    mMarkers.add(mMap.addMarker(new MarkerOptions().title(title).position(latLng).snippet(snippet)));
+//                }
+//            }
+//
+//            @Override
+//            public void onCancelled(DatabaseError databaseError) {
+//
+//            }
+//        });
     }
 
     private void editMarker(final Marker marker) {
@@ -249,6 +250,46 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void saveMap() {
-        mDBRef.child("Users").child(mUser.getUid()).child("route1").setValue(mMarkers);
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Enter a name to save the map's current state");
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_save_map, null, false);
+        final EditText editTextTitle = (EditText) view.findViewById(R.id.dialog_save_map_title);
+        editTextTitle.setText(lastSavedName);
+        builder.setView(view);
+        builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                final String name = editTextTitle.getText().toString();
+                lastSavedName = name;
+                if (name.length() > 0) {
+                    mDBRef.child("Users").child(mUser.getUid()).child(name).addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            if (dataSnapshot.hasChildren()) {
+                                AlertDialog.Builder overrideBuilder = new AlertDialog.Builder(MapsActivity.this);
+                                overrideBuilder.setTitle("Map already exists with this name.\nDo you wish to override it?");
+                                overrideBuilder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        mDBRef.child("Users").child(mUser.getUid()).child(name).setValue(mMarkers);
+                                    }
+                                });
+                                overrideBuilder.setNegativeButton(android.R.string.cancel, null);
+                                View view = LayoutInflater.from(MapsActivity.this).inflate(R.layout.dialog_override_map, null, false);
+                                overrideBuilder.setView(view);
+                                overrideBuilder.show();
+                            } else
+                                mDBRef.child("Users").child(mUser.getUid()).child(name).setValue(mMarkers);
+                        }
+
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+
+                        }
+                    });
+                }
+            }
+        });
+        builder.show();
     }
 }
