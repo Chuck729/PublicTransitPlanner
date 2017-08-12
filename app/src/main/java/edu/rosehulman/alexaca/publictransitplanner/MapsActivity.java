@@ -4,11 +4,13 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.design.widget.Snackbar;
-import android.support.v4.app.FragmentActivity;
 import android.support.v7.app.AlertDialog;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -24,8 +26,18 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
-public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
+import java.util.ArrayList;
+import java.util.HashMap;
+
+public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     private static final int PLACE_PICKER_REQUEST = 1;
     private GoogleMap mMap;
@@ -33,13 +45,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private LatLng mEndLoc;
     private String mStartLocAddr;
     private LatLng mStartLoc;
-
+    private ArrayList<Marker> mMarkers;
+    private DatabaseReference mDBRef;
+    private FirebaseUser mUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_maps);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        mUser = FirebaseAuth.getInstance().getCurrentUser();
+        mMarkers = new ArrayList<>();
         mStartLoc = getIntent().getParcelableExtra(MainActivity.CUURENT_LOC_EXTRA);
         mEndLoc = getIntent().getParcelableExtra(MainActivity.DESTINATION_EXTRA);
         mStartLocAddr = getIntent().getStringExtra(MainActivity.LOC_NAME_EXTRA);
@@ -60,6 +77,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 startPlacePicker();
             }
         });
+        mDBRef = FirebaseDatabase.getInstance().getReference();
     }
 
     private void startPlacePicker() {
@@ -78,7 +96,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (requestCode == PLACE_PICKER_REQUEST) {
             if (resultCode == RESULT_OK) {
                 Place place = PlacePicker.getPlace(this, data);
-                mMap.addMarker(new MarkerOptions().snippet(place.getAddress().toString()).position(place.getLatLng()).title("Title"));
+                mMarkers.add(mMap.addMarker(new MarkerOptions().snippet(place.getAddress().toString()).position(place.getLatLng()).title("Title")));
             }
         }
     }
@@ -96,7 +114,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 String title = editTextTitle.getText().toString();
                 String snippet = editTextSnippet.getText().toString();
 
-                mMap.addMarker(new MarkerOptions().position(latLng).title(title).snippet(snippet));
+                mMarkers.add(mMap.addMarker(new MarkerOptions().position(latLng).title(title).snippet(snippet)));
             }
         });
         builder.setNegativeButton(android.R.string.cancel, null);
@@ -120,8 +138,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         LatLng sydney = new LatLng(-34, 151);
         LatLng start = mStartLoc;
         LatLng end = mEndLoc;
-        mMap.addMarker(new MarkerOptions().position(start).title("Start").snippet(mStartLocAddr));
-        mMap.addMarker(new MarkerOptions().position(end).title("End").snippet(mEndLocAddr));
+        mMarkers.add(mMap.addMarker(new MarkerOptions().position(start).title("Start").snippet(mStartLocAddr)));
+        mMarkers.add(mMap.addMarker(new MarkerOptions().position(end).title("End").snippet(mEndLocAddr)));
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(start, 16.0f));
         mMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
             @Override
@@ -144,6 +162,26 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 mySnackbar.show();
 
                 return false;
+            }
+        });
+        mDBRef.child("Users").child(mUser.getUid()).child("route1").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                Log.d("datasnapshotcount", ""+dataSnapshot.getChildrenCount());
+                for (DataSnapshot d : dataSnapshot.getChildren()) {
+                    HashMap hash = (HashMap) d.getValue();
+                    Log.d("Hashmap", hash.toString());
+                    String title = (String)(hash.get("title"));
+                    String snippet = (String)(hash.get("snippet"));
+                    HashMap position = (HashMap) hash.get("position");
+                    LatLng latLng = new LatLng((double)position.get("latitude"), (double)position.get("longitude"));
+                    mMarkers.add(mMap.addMarker(new MarkerOptions().title(title).position(latLng).snippet(snippet)));
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
             }
         });
     }
@@ -176,5 +214,41 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
         builder.create().show();
+    }
+
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_map, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        switch (id) {
+            case R.id.action_settings:
+                break;
+            case R.id.action_logout:
+                finish();
+                break;
+            case R.id.action_save:
+                saveMap();
+                break;
+            default:
+                break;
+        }
+
+
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void saveMap() {
+        mDBRef.child("Users").child(mUser.getUid()).child("route1").setValue(mMarkers);
     }
 }
