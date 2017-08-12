@@ -35,6 +35,7 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback {
 
@@ -48,6 +49,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private DatabaseReference mDBRef;
     private FirebaseUser mUser;
     private String lastSavedName = "";
+    private String mapName = "";
+    private boolean loadMap = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,7 +65,14 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mStartLocAddr = getIntent().getStringExtra(MainActivity.LOC_NAME_EXTRA);
         mEndLocAddr = getIntent().getStringExtra(MainActivity.DESTINATION_NAME_EXTRA);
         Button placePickerButton = (Button)findViewById(R.id.place_picker_button);
-        if (mStartLoc == null || mEndLoc == null)
+        mapName = getIntent().getStringExtra(MainActivity.MAP_NAME_EXTRA);
+        if (mapName != null && mapName.length() > 0) {
+            loadMap = true;
+            SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
+                    .findFragmentById(R.id.map);
+            mapFragment.getMapAsync(this);
+        }
+        else if (mStartLoc == null || mEndLoc == null)
             Log.d("PTP", "Locations were null (Should not happen");
         else {
             // Obtain the SupportMapFragment and get notified when the map is ready to be used.
@@ -134,13 +144,33 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
-        // Add a marker in Sydney and move the camera
-        LatLng sydney = new LatLng(-34, 151);
         LatLng start = mStartLoc;
         LatLng end = mEndLoc;
-        mMarkers.add(mMap.addMarker(new MarkerOptions().position(start).title("Start").snippet(mStartLocAddr)));
-        mMarkers.add(mMap.addMarker(new MarkerOptions().position(end).title("End").snippet(mEndLocAddr)));
-        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(start, 16.0f));
+        if (!loadMap) {
+            mMarkers.add(mMap.addMarker(new MarkerOptions().position(start).title("Start").snippet(mStartLocAddr)));
+            mMarkers.add(mMap.addMarker(new MarkerOptions().position(end).title("End").snippet(mEndLocAddr)));
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(start, 16.0f));
+        } else {
+            mDBRef.child("Users").child(mUser.getUid()).child(mapName).addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    mMarkers = new ArrayList<>();
+                    for (DataSnapshot d : dataSnapshot.getChildren()) {
+                        HashMap hash = (HashMap) d.getValue();
+                        String title = (String) (hash.get("title"));
+                        String snippet = (String) (hash.get("snippet"));
+                        HashMap position = (HashMap) hash.get("position");
+                        LatLng latLng = new LatLng((double) position.get("latitude"), (double) position.get("longitude"));
+                        mMarkers.add(mMap.addMarker(new MarkerOptions().title(title).position(latLng).snippet(snippet)));
+                    }
+                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(mMarkers.get(0).getPosition(), 16.0f));
+                }
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+
+                    }
+            });
+        }
         mMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
             @Override
             public void onMapLongClick(LatLng latLng) {
@@ -164,27 +194,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 return false;
             }
         });
-        //code to load a saved maps
-//        mDBRef.child("Users").child(mUser.getUid()).child("route1").addListenerForSingleValueEvent(new ValueEventListener() {
-//            @Override
-//            public void onDataChange(DataSnapshot dataSnapshot) {
-//                Log.d("datasnapshotcount", ""+dataSnapshot.getChildrenCount());
-//                for (DataSnapshot d : dataSnapshot.getChildren()) {
-//                    HashMap hash = (HashMap) d.getValue();
-//                    Log.d("Hashmap", hash.toString());
-//                    String title = (String)(hash.get("title"));
-//                    String snippet = (String)(hash.get("snippet"));
-//                    HashMap position = (HashMap) hash.get("position");
-//                    LatLng latLng = new LatLng((double)position.get("latitude"), (double)position.get("longitude"));
-//                    mMarkers.add(mMap.addMarker(new MarkerOptions().title(title).position(latLng).snippet(snippet)));
-//                }
-//            }
-//
-//            @Override
-//            public void onCancelled(DatabaseError databaseError) {
-//
-//            }
-//        });
     }
 
     private void editMarker(final Marker marker) {

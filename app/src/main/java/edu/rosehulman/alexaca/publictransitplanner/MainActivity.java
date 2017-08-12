@@ -1,17 +1,20 @@
 package edu.rosehulman.alexaca.publictransitplanner;
 
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -30,6 +33,13 @@ import com.google.android.gms.location.places.ui.PlacePicker;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 public class MainActivity extends AppCompatActivity implements GoogleApiClient.OnConnectionFailedListener, OnMapReadyCallback {
 
@@ -37,6 +47,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     public static final String DESTINATION_EXTRA = "DESTINATION";
     public static final String LOC_NAME_EXTRA = "LOC_NAME";
     public static final String DESTINATION_NAME_EXTRA = "DEST_NAME";
+    public static final String MAP_NAME_EXTRA = "MAP_NAME_EXTRA";
     private GoogleMap mMap;
     private Location mLocation;
     private GoogleApiClient mGoogleApiClient;
@@ -48,6 +59,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     private LatLng currentDestination = null;
     private String currentDestinationAddr = null;
     private LatLng currentUserLocation = null;
+    private DatabaseReference mDBRef;
+    private FirebaseUser mUser;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,6 +73,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         Button chooseLocationButton = (Button) findViewById(R.id.choose_location_button);
         Button chooseDestinationButton = (Button) findViewById(R.id.destination_button);
         Button startButton = (Button)findViewById(R.id.start_button);
+        Button loadButton = (Button)findViewById(R.id.load_map_button);
         mDisplayLocationTV = (TextView) findViewById(R.id.display_location_text_view);
         mDisplayDestingationTV = (TextView) findViewById(R.id.display_destination_text_view);
         currentLocationButton.setOnClickListener(new View.OnClickListener() {
@@ -86,6 +100,12 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
                 startMapActivity();
             }
         });
+        loadButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                displaySavedMaps();
+            }
+        });
 
         mGoogleApiClient = new GoogleApiClient
                 .Builder(this)
@@ -93,6 +113,44 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
                 .addApi(Places.PLACE_DETECTION_API)
                 .enableAutoManage(this, this)
                 .build();
+        mDBRef = FirebaseDatabase.getInstance().getReference().child("Users");
+        mUser = FirebaseAuth.getInstance().getCurrentUser();
+    }
+
+    private void displaySavedMaps() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Select a saved map name");
+
+        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(this, android.R.layout.select_dialog_singlechoice);
+
+        mDBRef.child(mUser.getUid()).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                for (DataSnapshot d : dataSnapshot.getChildren()) {
+                    arrayAdapter.add(d.getKey());
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+        builder.setAdapter(arrayAdapter, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String name = arrayAdapter.getItem(which);
+                startLoadedMap(name);
+            }
+        });
+        builder.show();
+    }
+
+    private void startLoadedMap(String name) {
+        Intent mapIntent = new Intent(this, MapsActivity.class);
+
+        mapIntent.putExtra(MAP_NAME_EXTRA, name);
+        startActivity(mapIntent);
     }
 
     private void startMapActivity() {
