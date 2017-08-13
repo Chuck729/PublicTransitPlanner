@@ -51,6 +51,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private String lastSavedName = "";
     private String mapName = "";
     private boolean loadMap = false;
+    private boolean addingRoute = false;
+    private int addingRouteCount = 0;
+    private Marker firstMarker;
+    private Button addRouteButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,7 +69,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mStartLocAddr = getIntent().getStringExtra(MainActivity.LOC_NAME_EXTRA);
         mEndLocAddr = getIntent().getStringExtra(MainActivity.DESTINATION_NAME_EXTRA);
         Button placePickerButton = (Button)findViewById(R.id.place_picker_button);
-        Button addRouteButton = (Button)findViewById(R.id.add_route_button);
+        addRouteButton = (Button)findViewById(R.id.add_route_button);
         mapName = getIntent().getStringExtra(MainActivity.MAP_NAME_EXTRA);
         if (mapName != null && mapName.length() > 0) {
             loadMap = true;
@@ -91,22 +95,27 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         addRouteButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                addRoute();
+                startAddRoute();
             }
         });
         mDBRef = FirebaseDatabase.getInstance().getReference();
     }
 
-    private void addRoute() {
+    private void startAddRoute() {
+        addingRoute = true;
+        addingRouteCount = 0;
+        addRouteButton.setText("Click Two Markers");
+    }
+    private void addRoute(LatLng secondMarkerPos) {
         // Getting URL to the Google Directions API
-        String url = getUrl(mMarkers.get(0).getPosition(), mMarkers.get(1).getPosition());
+        String url = getUrl(firstMarker.getPosition(), secondMarkerPos);
         Log.d("onMapClick", url.toString());
         FetchUrl FetchUrl = new FetchUrl();
         FetchUrl.map = mMap;
         // Start downloading json data from Google Directions API
         FetchUrl.execute(url);
         //move map camera
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(mMarkers.get(0).getPosition()));
+        mMap.moveCamera(CameraUpdateFactory.newLatLng(firstMarker.getPosition()));
         mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
     }
 
@@ -226,16 +235,29 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mMap.setOnMarkerClickListener(new GoogleMap.OnMarkerClickListener() {
             @Override
             public boolean onMarkerClick(Marker marker) {
-                final Marker mMarker = marker;
-                Snackbar mySnackbar = Snackbar.make(findViewById(R.id.map_layout), "Click to edit marker", Snackbar.LENGTH_LONG);
-                mySnackbar.setAction("Edit", new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        editMarker(mMarker);
+                if (addingRoute) {
+                    addingRouteCount++;
+                    if (addingRouteCount == 2) {
+                        addRoute(marker.getPosition());
+                        addingRoute = false;
+                        addingRouteCount = 0;
+                        addRouteButton.setText("Add Route");
                     }
-                });
-                mySnackbar.show();
-
+                    else {
+                        firstMarker = marker;
+                        addRouteButton.setText("Click 1 Marker");
+                    }
+                } else {
+                    final Marker mMarker = marker;
+                    Snackbar mySnackbar = Snackbar.make(findViewById(R.id.map_layout), "Click to edit marker", Snackbar.LENGTH_LONG);
+                    mySnackbar.setAction("Edit", new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            editMarker(mMarker);
+                        }
+                    });
+                    mySnackbar.show();
+                }
                 return false;
             }
         });
