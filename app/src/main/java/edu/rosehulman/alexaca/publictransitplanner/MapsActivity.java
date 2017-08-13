@@ -55,6 +55,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private int addingRouteCount = 0;
     private Marker firstMarker;
     private Button addRouteButton;
+    private ArrayList<LatLng> routeStart = new ArrayList<>();
+    private ArrayList<LatLng> routeEnd = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +72,20 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mEndLocAddr = getIntent().getStringExtra(MainActivity.DESTINATION_NAME_EXTRA);
         Button placePickerButton = (Button)findViewById(R.id.place_picker_button);
         addRouteButton = (Button)findViewById(R.id.add_route_button);
+        Button clearMapButotn = (Button)findViewById(R.id.clear_map_button);
+        Button clearRoutesButotn = (Button)findViewById(R.id.clear_routes_button);
+        clearRoutesButotn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                clearMap("");
+            }
+        });
+        clearMapButotn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                clearMap("markers and ");
+            }
+        });
         mapName = getIntent().getStringExtra(MainActivity.MAP_NAME_EXTRA);
         if (mapName != null && mapName.length() > 0) {
             loadMap = true;
@@ -101,14 +117,35 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mDBRef = FirebaseDatabase.getInstance().getReference();
     }
 
+    private void clearMap(final String clearMapTitle) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Do you want to clear all "+clearMapTitle+"routes?");
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_override_map, null, false);
+        builder.setNegativeButton(android.R.string.cancel, null);
+        builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                mMap.clear();
+                if (clearMapTitle.length() > 1) {
+                    mMarkers = new ArrayList<Marker>();
+                } else {
+                    for (Marker m: mMarkers) {
+                        mMap.addMarker(new MarkerOptions().position(m.getPosition()).title(m.getTitle()).snippet(m.getSnippet()));
+                    }
+                }
+            }
+        });
+        builder.show();
+    }
+
     private void startAddRoute() {
         addingRoute = true;
         addingRouteCount = 0;
         addRouteButton.setText("Click Two Markers");
     }
-    private void addRoute(LatLng secondMarkerPos) {
+    private void addRoute(Marker secondMarker) {
         // Getting URL to the Google Directions API
-        String url = getUrl(firstMarker.getPosition(), secondMarkerPos);
+        String url = getUrl(firstMarker.getPosition(), secondMarker.getPosition());
         Log.d("onMapClick", url.toString());
         FetchUrl FetchUrl = new FetchUrl();
         FetchUrl.map = mMap;
@@ -117,6 +154,16 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         //move map camera
         mMap.moveCamera(CameraUpdateFactory.newLatLng(firstMarker.getPosition()));
         mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
+        routeStart.add(firstMarker.getPosition());
+        routeEnd.add(secondMarker.getPosition());
+    }
+
+    private void loadRoute(LatLng start, LatLng end) {
+        Log.d("tagroute", start.toString() + "  end: "+end.toString());
+        String url = getUrl(start, end);
+        FetchUrl FetchUrl = new FetchUrl();
+        FetchUrl.map = mMap;
+        FetchUrl.execute(url);
     }
 
     private String getUrl(LatLng origin, LatLng dest) {
@@ -209,13 +256,32 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 @Override
                 public void onDataChange(DataSnapshot dataSnapshot) {
                     mMarkers = new ArrayList<>();
+                    ArrayList<HashMap> ends = null;
+                    ArrayList<HashMap> begin = null;
                     for (DataSnapshot d : dataSnapshot.getChildren()) {
-                        HashMap hash = (HashMap) d.getValue();
-                        String title = (String) (hash.get("title"));
-                        String snippet = (String) (hash.get("snippet"));
-                        HashMap position = (HashMap) hash.get("position");
-                        LatLng latLng = new LatLng((double) position.get("latitude"), (double) position.get("longitude"));
-                        mMarkers.add(mMap.addMarker(new MarkerOptions().title(title).position(latLng).snippet(snippet)));
+                        Log.d("Test", d.toString());
+                        if (d.getKey().equals("Route Start")) {
+                            begin = (ArrayList<HashMap>) d.getValue();
+                        } else if (d.getKey().equals("Route End")) {
+                            ends = (ArrayList<HashMap>) d.getValue();
+                        } else {
+                            HashMap hash = (HashMap) d.getValue();
+                            String title = (String) (hash.get("title"));
+                            String snippet = (String) (hash.get("snippet"));
+                            HashMap position = (HashMap) hash.get("position");
+                            LatLng latLng = new LatLng((double) position.get("latitude"), (double) position.get("longitude"));
+                            mMarkers.add(mMap.addMarker(new MarkerOptions().title(title).position(latLng).snippet(snippet)));
+                            Log.d("Tag", mMarkers.get(mMarkers.size()-1).getPosition().toString());
+                        }
+                    }
+                    if (begin != null && ends != null) {
+                        for (int x = 0; x < begin.size() && x < ends.size(); x++) {
+                            HashMap beginHash = (HashMap) begin.get(x);
+                            HashMap endHash = (HashMap)ends.get(x);
+                            if (beginHash != null && endHash != null)
+                                loadRoute(new LatLng((double)beginHash.get("latitude"), (double)beginHash.get("longitude"))
+                                    ,new LatLng((double)endHash.get("latitude"), (double)endHash.get("longitude")));
+                        }
                     }
                     mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(mMarkers.get(0).getPosition(), 16.0f));
                 }
@@ -238,7 +304,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 if (addingRoute) {
                     addingRouteCount++;
                     if (addingRouteCount == 2) {
-                        addRoute(marker.getPosition());
+                        addRoute(marker);
                         addingRoute = false;
                         addingRouteCount = 0;
                         addRouteButton.setText("Add Route");
@@ -349,16 +415,20 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                                     @Override
                                     public void onClick(DialogInterface dialog, int which) {
                                         mDBRef.child("Users").child(mUser.getUid()).child(name).setValue(mMarkers);
+                                        mDBRef.child("Users").child(mUser.getUid()).child(name).child("Route Start").setValue(routeStart);
+                                        mDBRef.child("Users").child(mUser.getUid()).child(name).child("Route End").setValue(routeEnd);
                                     }
                                 });
                                 overrideBuilder.setNegativeButton(android.R.string.cancel, null);
                                 View view = LayoutInflater.from(MapsActivity.this).inflate(R.layout.dialog_override_map, null, false);
                                 overrideBuilder.setView(view);
                                 overrideBuilder.show();
-                            } else
+                            } else {
                                 mDBRef.child("Users").child(mUser.getUid()).child(name).setValue(mMarkers);
+                                mDBRef.child("Users").child(mUser.getUid()).child(name).child("Route Start").setValue(routeStart);
+                                mDBRef.child("Users").child(mUser.getUid()).child(name).child("Route End").setValue(routeEnd);
+                            }
                         }
-
                         @Override
                         public void onCancelled(DatabaseError databaseError) {
 
