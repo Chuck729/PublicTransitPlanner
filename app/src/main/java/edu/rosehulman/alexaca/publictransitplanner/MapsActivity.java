@@ -3,6 +3,7 @@ package edu.rosehulman.alexaca.publictransitplanner;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -75,6 +76,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         addRouteButton = (Button)findViewById(R.id.add_route_button);
         Button clearMapButotn = (Button)findViewById(R.id.clear_map_button);
         Button clearRoutesButotn = (Button)findViewById(R.id.clear_routes_button);
+        FloatingActionButton zoomInButton = (FloatingActionButton) findViewById(R.id.zoomin);
+        FloatingActionButton zoomOutButton = (FloatingActionButton)findViewById(R.id.zoomout);
         clearRoutesButotn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -113,6 +116,18 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onClick(View v) {
                 startAddRoute();
+            }
+        });
+        zoomInButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mMap.animateCamera(CameraUpdateFactory.zoomIn());
+            }
+        });
+        zoomOutButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mMap.animateCamera(CameraUpdateFactory.zoomOut());
             }
         });
         mDBRef = FirebaseDatabase.getInstance().getReference();
@@ -376,6 +391,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_map, menu);
         return true;
+    }
+
+    public void zoomOut() {
+        mMap.animateCamera(CameraUpdateFactory.zoomOut());
     }
 
     @Override
