@@ -14,6 +14,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
 import com.google.android.gms.common.GooglePlayServicesRepairableException;
@@ -115,6 +116,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
         mDBRef = FirebaseDatabase.getInstance().getReference();
+        for (int x = 0; x < 2; x++)
+            Toast.makeText(this, "Long press on the screen to add a marker or\nuse the location picker button", Toast.LENGTH_LONG).show();
     }
 
     private void clearMap(final String clearMapTitle) {
@@ -126,6 +129,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 mMap.clear();
+                routeStart = new ArrayList<LatLng>();
+                routeEnd = new ArrayList<LatLng>();
                 if (clearMapTitle.length() > 1) {
                     mMarkers = new ArrayList<Marker>();
                 } else {
@@ -146,7 +151,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private void addRoute(Marker secondMarker) {
         // Getting URL to the Google Directions API
         String url = getUrl(firstMarker.getPosition(), secondMarker.getPosition());
-        Log.d("onMapClick", url.toString());
         FetchUrl FetchUrl = new FetchUrl();
         FetchUrl.map = mMap;
         // Start downloading json data from Google Directions API
@@ -159,6 +163,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     private void loadRoute(LatLng start, LatLng end) {
+        routeStart.add(start);
+        routeEnd.add(end);
         Log.d("tagroute", start.toString() + "  end: "+end.toString());
         String url = getUrl(start, end);
         FetchUrl FetchUrl = new FetchUrl();
@@ -258,6 +264,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     mMarkers = new ArrayList<>();
                     ArrayList<HashMap> ends = null;
                     ArrayList<HashMap> begin = null;
+                    if (dataSnapshot.exists()) {
+                        MapsActivity.this.setTitle("Map: " + mapName);
+                        lastSavedName = mapName;
+                    }
                     for (DataSnapshot d : dataSnapshot.getChildren()) {
                         Log.d("Test", d.toString());
                         if (d.getKey().equals("Route Start")) {
@@ -377,12 +387,29 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         switch (id) {
             case R.id.action_settings:
+                Intent settingsActivity = new Intent(this, SettingsActivity.class);
+                settingsActivity.putExtra("user", mUser.getDisplayName());
+                startActivity(settingsActivity);
                 break;
-            case R.id.action_logout:
-                finish();
-                break;
+            case R.id.action_home:
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setTitle("Do you want to leave?\nAny unsaved changes will be lost.");
+                builder.setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                onBackPressed();
+                            }
+                        });
+                builder.setNegativeButton(android.R.string.cancel, null);
+                builder.show();
+
+                return true;
             case R.id.action_save:
                 saveMap();
+                break;
+            case R.id.action_help:
+                for (int x = 0; x < 1; x++)
+                    Toast.makeText(this, "Long press on the screen to add a marker or\nuse the location picker button", Toast.LENGTH_LONG).show();
                 break;
             default:
                 break;
@@ -405,6 +432,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 final String name = editTextTitle.getText().toString();
                 lastSavedName = name;
                 if (name.length() > 0) {
+                    MapsActivity.this.setTitle("Map: "+ name);
                     mDBRef.child("Users").child(mUser.getUid()).child(name).addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(DataSnapshot dataSnapshot) {
@@ -415,8 +443,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                                     @Override
                                     public void onClick(DialogInterface dialog, int which) {
                                         mDBRef.child("Users").child(mUser.getUid()).child(name).setValue(mMarkers);
-                                        mDBRef.child("Users").child(mUser.getUid()).child(name).child("Route Start").setValue(routeStart);
-                                        mDBRef.child("Users").child(mUser.getUid()).child(name).child("Route End").setValue(routeEnd);
+                                        if (routeStart.size() == 0 && routeEnd.size() == 0) {
+                                            mDBRef.child("Users").child(mUser.getUid()).child(name).child("Route Start").removeValue();
+                                            mDBRef.child("Users").child(mUser.getUid()).child(name).child("Route End").removeValue();
+                                        } else {
+                                            mDBRef.child("Users").child(mUser.getUid()).child(name).child("Route Start").setValue(routeStart);
+                                            mDBRef.child("Users").child(mUser.getUid()).child(name).child("Route End").setValue(routeEnd);
+                                        }
                                     }
                                 });
                                 overrideBuilder.setNegativeButton(android.R.string.cancel, null);
@@ -437,6 +470,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 }
             }
         });
+        builder.setNegativeButton(android.R.string.cancel, null);
         builder.show();
     }
 }

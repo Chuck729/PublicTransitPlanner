@@ -8,17 +8,24 @@
         android:title="@string/action_settings"
         app:showAsAction="never" />
     <item
-        android:id="@+id/action_logout"
+        android:id="@+id/action_home"
         android:title="Logout"
         app:showAsAction="always"
-        android:icon="@mipmap/logout_icon"
-        android:orderInCategory="2"/>
+        android:icon="@mipmap/home_icon"
+        android:orderInCategory="3"/>
     <item
         android:id="@+id/action_save"
         android:title="Save Map"
         app:showAsAction="always"
         android:icon="@mipmap/save_map"
+        android:orderInCategory="2"
+        />
+    <item
+        android:id="@+id/action_help"
+        android:title="Help"
+        app:showAsAction="always"
         android:orderInCategory="1"
+        android:icon="@mipmap/help"
         />
 </menu>
 

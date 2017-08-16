@@ -28,7 +28,7 @@
     <string name="register_dialog">Register</string>
     <string name="title_activity_maps">Map</string>
     <string name="current_location">Use Current Location</string>
-    <string name="choose_location">Choose Location</string>
+    <string name="choose_location">Launch Place Picker</string>
     <string name="choose_desination">Choose Desination</string>
     <string name="view_map">View Map</string>
     <string name="add_marker_title">Add a marker for (%1$.1f, %2$.1f)</string>

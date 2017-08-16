@@ -153,7 +153,7 @@ public class LoginActivity extends AppCompatActivity implements LoaderCallbacks<
                     if (task.isSuccessful()) {
                         Log.d("Register", "success");
                         User user = new User(name);
-                        mDatabaseRef.child(mAuth.getCurrentUser().getUid()).push().setValue(user);
+                        mDatabaseRef.child(mAuth.getCurrentUser().getUid()).child("username_value").setValue(name);
                         final Intent mainIntent = new Intent(context, MainActivity.class);
                         startActivity(mainIntent);
 

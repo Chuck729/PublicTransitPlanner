@@ -28,6 +28,9 @@
         android:text="Clear All Routes"
         android:layout_marginTop="80dp"
         android:layout_marginLeft="15dp"
+        android:padding="15dp"
+        android:background="@color/clear_color"
+        android:textColor="@color/white"
         android:layout_gravity="top|left"/>
 
     <Button
@@ -35,8 +38,11 @@
         android:layout_height="wrap_content"
         android:id="@+id/clear_map_button"
         android:text="Clear Map"
+        android:background="@color/clear_color"
+        android:textColor="@color/white"
         android:layout_marginTop="80dp"
         android:layout_marginRight="15dp"
+        android:padding="15dp"
         android:layout_gravity="top|right"/>
     <Button
         android:id="@+id/place_picker_button"
@@ -45,6 +51,9 @@
         android:layout_gravity="bottom|right"
         android:layout_marginBottom="20dp"
         android:layout_marginRight="15dp"
+        android:background="@color/picker_blue"
+        android:textColor="@color/white"
+        android:padding="15dp"
         android:text="@string/use_location_picker"/>
 
     <Button
@@ -53,6 +62,9 @@
         android:id="@+id/add_route_button"
         android:layout_gravity="bottom|left"
         android:text="Add Route"
+        android:background="@color/start_color"
+        android:textColor="@color/white"
+        android:padding="15dp"
         android:layout_marginBottom="20dp"
         android:layout_marginLeft="15dp"/>
 

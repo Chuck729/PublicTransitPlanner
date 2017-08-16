@@ -7,7 +7,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/dialog_username"
-        android:hint="@string/username_hint"
+        android:hint="Email"
         android:layout_marginTop="20dp"/>
 
 
@@ -15,7 +15,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@+id/dialog_your_name"
-        android:hint="@string/your_name_hint"
+        android:hint="@string/username_hint"
         android:layout_marginTop="10dp"/>
 
     <EditText
@@ -23,5 +23,6 @@
         android:layout_height="wrap_content"
         android:id="@+id/dialog_password"
         android:hint="@string/prompt_password"
-        android:layout_marginTop="10dp"/>
+        android:layout_marginTop="10dp"
+        android:inputType="textPassword"/>
 </LinearLayout>

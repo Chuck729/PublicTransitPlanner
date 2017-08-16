@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -48,6 +49,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
     public static final String LOC_NAME_EXTRA = "LOC_NAME";
     public static final String DESTINATION_NAME_EXTRA = "DEST_NAME";
     public static final String MAP_NAME_EXTRA = "MAP_NAME_EXTRA";
+    private static final int LOCATION_CODE = 1;
+    private static final int DESTINATION_CODE = 2;
     private GoogleMap mMap;
     private Location mLocation;
     private GoogleApiClient mGoogleApiClient;
@@ -68,19 +71,20 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        this.setTitle("test");
+        this.setTitle("Route Tracker");
         Button currentLocationButton = (Button) findViewById(R.id.current_location_button);
         Button chooseLocationButton = (Button) findViewById(R.id.choose_location_button);
         Button chooseDestinationButton = (Button) findViewById(R.id.destination_button);
         Button startButton = (Button)findViewById(R.id.start_button);
         Button loadButton = (Button)findViewById(R.id.load_map_button);
         Button deleteButton = (Button)findViewById(R.id.delete_map_button);
+        Button currentDestinationButton = (Button)findViewById(R.id.current_destination_button);
         mDisplayLocationTV = (TextView) findViewById(R.id.display_location_text_view);
         mDisplayDestingationTV = (TextView) findViewById(R.id.display_destination_text_view);
         currentLocationButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                getCurrentLocation();
+                getCurrentLocation(1);
             }
         });
         chooseLocationButton.setOnClickListener(new View.OnClickListener() {
@@ -113,6 +117,12 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
                 displaySavedMaps(true);
             }
         });
+        currentDestinationButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                getCurrentLocation(2);
+            }
+        });
 
         mGoogleApiClient = new GoogleApiClient
                 .Builder(this)
@@ -134,7 +144,8 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 for (DataSnapshot d : dataSnapshot.getChildren()) {
-                    arrayAdapter.add(d.getKey());
+                    if (!d.getKey().equals("username_value"))
+                        arrayAdapter.add(d.getKey());
                 }
             }
 
@@ -156,8 +167,30 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         builder.show();
     }
 
-    private void deleteMap(String name) {
-        mDBRef.child(mUser.getUid()).child(name).removeValue();
+    private void deleteMap(final String name) {
+
+        Snackbar.make(findViewById(R.id.main_activity_layout), "You deleted map: "+ name + "\t(swipe me right to dismiss)",Snackbar.LENGTH_INDEFINITE)
+                .setAction("UNDO", new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        return;
+                    }
+                }).addCallback(new Snackbar.Callback() {
+            @Override
+            public void onDismissed(Snackbar snackbar, int event) {
+                if (DISMISS_EVENT_SWIPE == event) {
+                    snackbar.dismiss();
+                    mDBRef.child(mUser.getUid()).child(name).removeValue();
+                }
+            }
+        })
+//                .setAction("OK", new View.OnClickListener() {
+//                    @Override
+//                    public void onClick(View v) {
+//                        mDBRef.child(mUser.getUid()).child(name).removeValue();
+//                    }})
+                    .show();
+
     }
 
     private void startLoadedMap(String name) {
@@ -180,7 +213,7 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
         startActivityForResult(mapIntent, PLACE_PICKER_REQUEST);
     }
 
-    private void getCurrentLocation() {
+    private void getCurrentLocation(final int code) {
 
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
 
@@ -192,7 +225,10 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
                         PlaceLikelihood placeLike = likelyPlaces.get(0);
 
                         currentUserLocation = placeLike.getPlace().getLatLng();
-                        updateStartLocation(currentUserLocation, placeLike.getPlace());
+                        if (code == LOCATION_CODE)
+                            updateStartLocation(currentUserLocation, placeLike.getPlace());
+                        else
+                            updateEndLocation(currentLocation, placeLike.getPlace());
                         likelyPlaces.release();
                     }
                 }
@@ -257,8 +293,11 @@ public class MainActivity extends AppCompatActivity implements GoogleApiClient.O
 
         switch (id) {
             case R.id.action_settings:
+                Intent settings = new Intent(this, SettingsActivity.class);
+                startActivity(settings);
                 break;
             case R.id.action_logout:
+                FirebaseAuth.getInstance().signOut();
                 finish();
                 break;
             default:
